@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Roleta.Application/Roleta.Application.csproj" />
+    <Project Path="src/Roleta.Domain/Roleta.Domain.csproj" />
+    <Project Path="src/Roleta.Infrastructure/Roleta.Infrastructure.csproj" />
+    <Project Path="src/Roleta.Web/Roleta.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Roleta.Application.Tests/Roleta.Application.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,46 @@
+@inherits LayoutComponentBase
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@* Layout limpo do telão: sem navegação, sem controles — só conteúdo de show. *@
+<main class="public-stage">
+    <div class="lights" @ref="lightsEl" aria-hidden="true"></div>
+    <div class="public-content">
+        @Body
+    </div>
+</main>
+
+@code {
+    private ElementReference lightsEl;
+    private IJSObjectReference? module;
+    private IJSObjectReference? marquee;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/marquee.js");
+        marquee = await module.InvokeAsync<IJSObjectReference>(
+            "init", lightsEl, new { gap = 42, bulb = 16, margin = 16, cycle = 1.2 });
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (marquee is not null)
+            {
+                await marquee.InvokeVoidAsync("dispose");
+                await marquee.DisposeAsync();
+            }
+            if (module is not null)
+            {
+                await module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // circuito já encerrado — nada a limpar
+        }
+    }
+}

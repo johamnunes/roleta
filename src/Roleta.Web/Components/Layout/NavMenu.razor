@@ -1,0 +1,57 @@
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">🎯 Roleta</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="nav flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Início
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3 mt-2 text-uppercase text-secondary small fw-bold">Show</div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="controle">
+                <span class="bi bi-sliders-nav-menu" aria-hidden="true"></span> Controle
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="publico" target="_blank">
+                <span class="bi bi-tv-nav-menu" aria-hidden="true"></span> Telão (Público) ↗
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3 mt-2 text-uppercase text-secondary small fw-bold">Cadastro</div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="cadastro/jogos">
+                <span class="bi bi-controller-nav-menu" aria-hidden="true"></span> Jogos
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="cadastro/regras">
+                <span class="bi bi-card-text-nav-menu" aria-hidden="true"></span> Regras
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="cadastro/modificadores">
+                <span class="bi bi-shuffle-nav-menu" aria-hidden="true"></span> Modificadores
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="cadastro/acoes">
+                <span class="bi bi-lightning-charge-nav-menu" aria-hidden="true"></span> Ações
+            </NavLink>
+        </div>
+    </nav>
+</div>

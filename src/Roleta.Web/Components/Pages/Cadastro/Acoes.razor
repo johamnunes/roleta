@@ -1,0 +1,123 @@
+@page "/cadastro/acoes"
+@inject ICatalogService Catalog
+@inject IJSRuntime JS
+
+<PageTitle>Cadastro de Ações</PageTitle>
+
+<div class="d-flex align-items-center gap-3 flex-wrap mb-3">
+    <h1 class="mb-0">⚡ Ações / Prompts</h1>
+    <button class="btn btn-primary ms-auto" @onclick="StartNew">+ Nova ação</button>
+</div>
+
+@if (editModel is not null)
+{
+    <EditForm Model="editModel" OnValidSubmit="SaveAsync" class="card card-body mb-4 shadow-sm">
+        <DataAnnotationsValidator />
+        <h5>@(IsNew ? "Nova ação" : "Editar ação")</h5>
+
+        <div class="row g-3">
+            <div class="col-12">
+                <label class="form-label">Texto do desafio (vai para a TV)</label>
+                <InputTextArea @bind-Value="editModel.Text" class="form-control" rows="2" />
+                <ValidationMessage For="() => editModel.Text" />
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label">Duração sugerida (segundos) <span class="text-secondary">— opcional</span></label>
+                <InputNumber @bind-Value="editModel.SuggestedDurationSeconds" class="form-control" />
+                <ValidationMessage For="() => editModel.SuggestedDurationSeconds" />
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label">Pontos ao acertar</label>
+                <InputNumber @bind-Value="editModel.ScoreOnSuccess" class="form-control" />
+                <ValidationMessage For="() => editModel.ScoreOnSuccess" />
+            </div>
+            <div class="col-12 col-md-4 d-flex align-items-end">
+                <div class="form-check">
+                    <InputCheckbox @bind-Value="editModel.IsActive" class="form-check-input" id="actActive" />
+                    <label class="form-check-label" for="actActive">Ativa (entra nos sorteios)</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3 d-flex gap-2">
+            <button type="submit" class="btn btn-success">Salvar</button>
+            <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">Cancelar</button>
+        </div>
+    </EditForm>
+}
+
+@if (items.Count == 0)
+{
+    <p class="text-secondary"><em>Nenhuma ação cadastrada.</em></p>
+}
+else
+{
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Texto</th>
+                <th class="text-center">Duração</th>
+                <th class="text-center">Pontos</th>
+                <th class="text-center">Ativa</th>
+                <th class="text-end">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var a in items)
+            {
+                <tr class="@(a.IsActive ? "" : "opacity-50")">
+                    <td>@a.Text</td>
+                    <td class="text-center">@(a.SuggestedDurationSeconds is int s ? $"{s}s" : "—")</td>
+                    <td class="text-center">@a.ScoreOnSuccess</td>
+                    <td class="text-center">@(a.IsActive ? "✅" : "—")</td>
+                    <td class="text-end text-nowrap">
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => Edit(a)">Editar</button>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAsync(a)">Excluir</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <p class="text-secondary"><small>@items.Count ação(ões).</small></p>
+}
+
+@code {
+    private IReadOnlyList<ActionDefinition> items = [];
+    private ActionDefinition? editModel;
+    private bool IsNew => editModel is not null && items.All(a => a.Id != editModel.Id);
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync() => items = await Catalog.GetActionsAsync();
+
+    private void StartNew() => editModel = new ActionDefinition();
+
+    private void Edit(ActionDefinition a) => editModel = new ActionDefinition
+    {
+        Id = a.Id,
+        Text = a.Text,
+        SuggestedDurationSeconds = a.SuggestedDurationSeconds,
+        ScoreOnSuccess = a.ScoreOnSuccess,
+        IsActive = a.IsActive,
+        CreatedAt = a.CreatedAt,
+        UpdatedAt = a.UpdatedAt,
+    };
+
+    private void Cancel() => editModel = null;
+
+    private async Task SaveAsync()
+    {
+        await Catalog.SaveActionAsync(editModel!);
+        editModel = null;
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(ActionDefinition a)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Excluir esta ação?"))
+            return;
+        await Catalog.DeleteActionAsync(a.Id);
+        if (editModel?.Id == a.Id) editModel = null;
+        await LoadAsync();
+    }
+}

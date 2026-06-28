@@ -1,0 +1,324 @@
+@page "/controle"
+@implements IDisposable
+@inject ICatalogService Catalog
+@inject IGameService Games
+@inject ShowState Show
+
+<PageTitle>Roleta — Controle</PageTitle>
+
+<div class="d-flex align-items-center gap-3 flex-wrap mb-3">
+    <h1 class="mb-0">🎛️ Controle</h1>
+    <a class="btn btn-outline-dark ms-auto" href="publico" target="_blank">Abrir telão ↗</a>
+</div>
+
+@if (message is not null)
+{
+    <div class="alert alert-warning py-2">@message</div>
+}
+
+<!-- Jogo -->
+<div class="card card-body mb-3">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <h5 class="mb-0">Jogo</h5>
+        @if (Show.HasActiveGame)
+        {
+            <span class="badge text-bg-success fs-6">@Show.ActiveGameName</span>
+        }
+        else
+        {
+            <span class="text-secondary">Modo livre (sorteia do catálogo inteiro)</span>
+        }
+        <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
+            <select class="form-select w-auto" value="@selectedGameId" @onchange="e => selectedGameId = e.Value?.ToString()">
+                <option value="">— escolher jogo —</option>
+                @foreach (var g in savedGames)
+                {
+                    <option value="@g.Id">@g.Name</option>
+                }
+            </select>
+            <button class="btn btn-primary" @onclick="LoadSelectedGame" disabled="@(string.IsNullOrEmpty(selectedGameId))">Carregar</button>
+            @if (Show.HasActiveGame)
+            {
+                <button class="btn btn-outline-secondary" @onclick="Show.ClearGame">Modo livre</button>
+            }
+            <a class="btn btn-outline-dark" href="cadastro/jogos">Gerenciar</a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Placar -->
+    <div class="col-12 col-lg-5">
+        <div class="card card-body">
+            <div class="d-flex align-items-center mb-2">
+                <h5 class="mb-0">Placar</h5>
+                <button class="btn btn-sm btn-outline-secondary ms-auto" @onclick="Show.ResetScores">Zerar</button>
+            </div>
+            @for (var i = 0; i < Show.Players.Count; i++)
+            {
+                var idx = i;
+                var p = Show.Players[idx];
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <input class="form-control show-text" value="@p.Name"
+                           @onchange="e => Show.SetPlayerName(idx, e.Value?.ToString() ?? string.Empty)" />
+                    <button class="btn btn-outline-danger" @onclick="() => Show.AddScore(idx, -1)">−</button>
+                    <span class="fs-4 fw-bold" style="min-width:2.5rem;text-align:center">@p.Score</span>
+                    <button class="btn btn-outline-success" @onclick="() => Show.AddScore(idx, 1)">+</button>
+                </div>
+            }
+        </div>
+
+        <div class="card card-body mt-3">
+            <h5>Cronômetro</h5>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button class="btn btn-primary" @onclick="() => Show.StartTimer(30)">30s</button>
+                <button class="btn btn-primary" @onclick="() => Show.StartTimer(60)">60s</button>
+                @if (Show.TimerRunning)
+                {
+                    <button class="btn btn-outline-secondary" @onclick="Show.PauseTimer">Pausar</button>
+                }
+                else if (Show.TimerRemainingSeconds > 0)
+                {
+                    <button class="btn btn-outline-primary" @onclick="Show.ResumeTimer">Retomar</button>
+                }
+                <button class="btn btn-outline-secondary" @onclick="() => Show.AddTimerSeconds(10)">+10s</button>
+                <button class="btn btn-outline-danger" @onclick="Show.StopTimer">Zerar</button>
+                <span class="ms-auto fs-2 fw-bold @(Show.TimerTotalSeconds > 0 && Show.TimerRemainingSeconds <= 5 ? "text-danger" : "")">
+                    @(Show.TimerTotalSeconds > 0 ? $"{Show.TimerRemainingSeconds}s" : "—")
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revelar -->
+    <div class="col-12 col-lg-7">
+        <div class="card card-body">
+            <h5>Revelar na roleta</h5>
+            <p class="text-secondary mb-2"><small>A roleta física parou numa cor → clique para sortear e mostrar no telão.@(Show.HasActiveGame ? " (números = quantas ainda restam no jogo)" : "")</small></p>
+            <div class="d-flex gap-2 flex-wrap mb-3">
+                @foreach (var color in colors)
+                {
+                    <button class="btn @ButtonClass(color)" @onclick="() => RevealRule(color)"
+                            disabled="@(Show.HasActiveGame && Show.RemainingRules(color) == 0)">
+                        Regra @color.Label()@(Show.HasActiveGame ? $" ({Show.RemainingRules(color)})" : "")
+                    </button>
+                }
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-dark" @onclick="RevealModifier">🔀 Modificador</button>
+                <button class="btn btn-dark" @onclick="RevealAction"
+                        disabled="@(Show.HasActiveGame && Show.RemainingActions == 0)">
+                    ⚡ Ação@(Show.HasActiveGame ? $" ({Show.RemainingActions})" : "")
+                </button>
+            </div>
+        </div>
+
+        <!-- Telão -->
+        <div class="card card-body mt-3">
+            <div class="d-flex align-items-center mb-2">
+                <h5 class="mb-0">Telão</h5>
+                <div class="ms-auto d-flex gap-2">
+                    @if (Show.DisplayVisible)
+                    {
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => Show.SetDisplayVisible(false)">Esconder</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => Show.SetDisplayVisible(true)">Mostrar</button>
+                    }
+                    <button class="btn btn-sm btn-outline-danger" @onclick="Show.ClearReveal">Limpar</button>
+                </div>
+            </div>
+            <div class="control-reveal-preview">
+                @if (Show.Current is { } c)
+                {
+                    <div class="text-uppercase small" style="opacity:.7">@ChipLabel(c) @(Show.DisplayVisible ? "" : "(escondido)")</div>
+                    <div class="show-text fs-4">@c.Text</div>
+                }
+                else
+                {
+                    <span class="text-secondary">Nada no telão.</span>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card card-body mt-3">
+    <h5>Regras que já saíram</h5>
+    @if (Show.RuleHistory.Count == 0)
+    {
+        <p class="text-secondary mb-0"><small>Nenhuma regra revelada ainda.</small></p>
+    }
+    else
+    {
+        <div class="d-flex flex-column gap-2">
+            @foreach (var r in Show.RuleHistory)
+            {
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge @r.Color.BadgeClass()" style="min-width:6rem">@r.Color.Label()</span>
+                    <span class="flex-grow-1 text-truncate show-text">@r.Text</span>
+                    <button class="btn btn-sm btn-outline-primary" @onclick="() => MostrarRegra(r)">Mostrar</button>
+                    <button class="btn btn-sm btn-outline-warning" @onclick="() => InverterRegra(r)"
+                            disabled="@(string.IsNullOrWhiteSpace(r.OppositeText))" title="Alternar entre base e oposto (vira o card)">
+                        Inverter
+                    </button>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@if (noteModalOpen && Show.CurrentRule is { } cr)
+{
+    <div class="note-modal-backdrop">
+        <div class="note-modal">
+            <div class="d-flex align-items-center mb-2">
+                <span class="badge @cr.Color.BadgeClass()">@cr.Color.Label()</span>
+                <span class="ms-2 fw-bold">@(Show.IsShowingOpposite ? "Nota — oposto" : "Nota — regra")</span>
+                <button type="button" class="btn-close btn-close-white ms-auto" @onclick="() => noteModalOpen = false"></button>
+            </div>
+            <div class="show-text fs-3 mb-3">@(Show.IsShowingOpposite ? (cr.OppositeText ?? cr.Text) : cr.Text)</div>
+            <div class="note-modal-body">
+                @{
+                    var note = Show.IsShowingOpposite ? cr.OppositeJudgeNotes : cr.JudgeNotes;
+                }
+                @(string.IsNullOrWhiteSpace(note) ? "(sem nota cadastrada)" : note)
+            </div>
+            <div class="mt-3 d-flex gap-2">
+                <button class="btn btn-outline-warning" @onclick="() => Show.ToggleRule(cr)"
+                        disabled="@(string.IsNullOrWhiteSpace(cr.OppositeText))">Inverter</button>
+                <button class="btn btn-secondary ms-auto" @onclick="() => noteModalOpen = false">Fechar</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private static readonly Color[] colors = Enum.GetValues<Color>();
+    private string? message;
+    private bool noteModalOpen;
+
+    [SupplyParameterFromQuery(Name = "jogo")]
+    public Guid? JogoId { get; set; }
+
+    private IReadOnlyList<Game> savedGames = [];
+    private string? selectedGameId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Show.Changed += OnChanged;
+        savedGames = await Games.GetGamesAsync();
+        if (JogoId is Guid id) await LoadGameById(id);
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task LoadSelectedGame()
+    {
+        if (Guid.TryParse(selectedGameId, out var id)) await LoadGameById(id);
+    }
+
+    private async Task LoadGameById(Guid id)
+    {
+        var game = await Games.GetGameAsync(id);
+        if (game is null)
+        {
+            message = "Jogo não encontrado.";
+            return;
+        }
+        Show.LoadGame(game);
+        selectedGameId = id.ToString();
+        message = $"Jogo \"{game.Name}\" carregado. Placar zerado e conteúdo definido.";
+    }
+
+    private async Task RevealRule(Color color)
+    {
+        if (Show.HasActiveGame)
+        {
+            if (Show.DrawRule(color)) { message = null; noteModalOpen = true; }
+            else message = $"Acabaram as regras {color.Label()} deste jogo.";
+            return;
+        }
+
+        var items = await Catalog.GetRulesAsync(color, includeInactive: false);
+        var pick = Show.PickRandom($"rule-{color}", items, r => r.Id);
+        if (pick is null)
+        {
+            message = $"Nenhuma regra ativa na cor {color.Label()}. Cadastre em Regras.";
+            return;
+        }
+        message = null;
+        Show.ShowRule(pick);
+        noteModalOpen = true;
+    }
+
+    private void MostrarRegra(RuleDefinition r)
+    {
+        Show.ShowRule(r);
+        noteModalOpen = true;
+    }
+
+    private void InverterRegra(RuleDefinition r)
+    {
+        Show.ToggleRule(r);
+        noteModalOpen = true;
+    }
+
+    private async Task RevealModifier()
+    {
+        if (Show.HasActiveGame)
+        {
+            message = Show.DrawModifier() ? null : "Este jogo não tem modificadores.";
+            return;
+        }
+
+        var items = await Catalog.GetModifiersAsync(includeInactive: false);
+        var pick = Show.PickRandom("modifier", items, m => m.Id);
+        if (pick is null)
+        {
+            message = "Nenhum modificador ativo. Cadastre em Modificadores.";
+            return;
+        }
+        message = null;
+        Show.SetReveal(new Reveal(RevealKind.Modifier, string.Empty, pick.Name, null));
+    }
+
+    private async Task RevealAction()
+    {
+        if (Show.HasActiveGame)
+        {
+            message = Show.DrawAction() ? null : "Acabaram as ações deste jogo.";
+            return;
+        }
+
+        var items = await Catalog.GetActionsAsync(includeInactive: false);
+        var pick = Show.PickRandom("action", items, a => a.Id);
+        if (pick is null)
+        {
+            message = "Nenhuma ação ativa. Cadastre em Ações.";
+            return;
+        }
+        message = null;
+        Show.SetReveal(new Reveal(RevealKind.Action, string.Empty, pick.Text, null));
+    }
+
+    private static string ChipLabel(Reveal c) => c.Kind switch
+    {
+        RevealKind.Rule => "Regra",
+        RevealKind.Modifier => "Modificador",
+        RevealKind.Action => "Ação",
+        _ => string.Empty,
+    };
+
+    private static string ButtonClass(Color color) => color switch
+    {
+        Color.Blue => "btn-primary",
+        Color.Red => "btn-danger",
+        Color.Green => "btn-success",
+        Color.White => "btn-light border",
+        _ => "btn-secondary",
+    };
+
+    public void Dispose() => Show.Changed -= OnChanged;
+}

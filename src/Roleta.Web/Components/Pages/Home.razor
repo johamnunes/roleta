@@ -1,0 +1,67 @@
+@page "/"
+@inject ICatalogService Catalog
+
+<PageTitle>Roleta — Início</PageTitle>
+
+<h1>🎯 Roleta</h1>
+<p class="lead">Ferramenta de palco para o show de improviso ao vivo.</p>
+
+@if (counts is null)
+{
+    <p><em>Carregando…</em></p>
+}
+else
+{
+    <div class="row g-3 mt-1">
+        <div class="col-12 col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">📜 Regras</h5>
+                    <p class="display-6 mb-0">@counts.Value.Rules</p>
+                    <small class="text-secondary">@counts.Value.RulesActive ativas</small>
+                </div>
+                <div class="card-footer">
+                    <a class="btn btn-sm btn-primary" href="cadastro/regras">Gerenciar</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">🔀 Modificadores</h5>
+                    <p class="display-6 mb-0">@counts.Value.Modifiers</p>
+                    <small class="text-secondary">@counts.Value.ModifiersActive ativos</small>
+                </div>
+                <div class="card-footer">
+                    <a class="btn btn-sm btn-primary" href="cadastro/modificadores">Gerenciar</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">⚡ Ações</h5>
+                    <p class="display-6 mb-0">@counts.Value.Actions</p>
+                    <small class="text-secondary">@counts.Value.ActionsActive ativas</small>
+                </div>
+                <div class="card-footer">
+                    <a class="btn btn-sm btn-primary" href="cadastro/acoes">Gerenciar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p class="mt-4 text-secondary">
+        As regras do show estão em <code>docs/game-rules.md</code>. Telas de Controle e Público
+        (telão) virão nas próximas fases.
+    </p>
+}
+
+@code {
+    private CatalogCounts? counts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        counts = await Catalog.GetCountsAsync();
+    }
+}

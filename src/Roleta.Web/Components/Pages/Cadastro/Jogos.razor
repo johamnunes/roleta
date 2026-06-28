@@ -1,0 +1,228 @@
+@page "/cadastro/jogos"
+@inject IGameService Games
+@inject ICatalogService Catalog
+@inject IJSRuntime JS
+
+<PageTitle>Jogos</PageTitle>
+
+<div class="d-flex align-items-center gap-3 flex-wrap mb-3">
+    <h1 class="mb-0">🎲 Jogos</h1>
+    <button class="btn btn-primary ms-auto" @onclick="StartNew">+ Novo jogo</button>
+</div>
+
+@if (editModel is not null)
+{
+    <EditForm Model="editModel" OnValidSubmit="SaveAsync" class="card card-body mb-4 shadow-sm">
+        <DataAnnotationsValidator />
+        <h5>@(IsNew ? "Novo jogo" : "Editar jogo")</h5>
+
+        <div class="row g-3 mb-2">
+            <div class="col-12 col-md-6">
+                <label class="form-label">Nome do jogo</label>
+                <InputText @bind-Value="editModel.Name" class="form-control" placeholder="ex.: Show de sexta" />
+                <ValidationMessage For="() => editModel.Name" />
+            </div>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-md-4">
+                <label class="form-label">Jogador 1</label>
+                <InputText @bind-Value="editModel.Player1" class="form-control" />
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label">Jogador 2</label>
+                <InputText @bind-Value="editModel.Player2" class="form-control" />
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label">Jogador 3</label>
+                <InputText @bind-Value="editModel.Player3" class="form-control" />
+            </div>
+        </div>
+
+        <!-- Regras por cor -->
+        <h6 class="mt-2">Regras <span class="text-secondary">(@selRules.Count selecionadas — saem 1× por jogo)</span></h6>
+        <div class="row g-3">
+            @foreach (var color in colors)
+            {
+                var rulesOfColor = allRules.Where(r => r.Color == color).ToList();
+                <div class="col-12 col-lg-6">
+                    <div class="border rounded p-2 h-100">
+                        <div class="d-flex align-items-center mb-1">
+                            <span class="badge @color.BadgeClass()">@color.Label()</span>
+                            <div class="ms-auto">
+                                <button type="button" class="btn btn-sm btn-link p-0" @onclick="() => SetAll(selRules, rulesOfColor.Select(r => r.Id), true)">todas</button>
+                                <button type="button" class="btn btn-sm btn-link p-0 ms-2" @onclick="() => SetAll(selRules, rulesOfColor.Select(r => r.Id), false)">nenhuma</button>
+                            </div>
+                        </div>
+                        @if (rulesOfColor.Count == 0)
+                        {
+                            <small class="text-secondary">Nenhuma regra cadastrada nesta cor.</small>
+                        }
+                        @foreach (var r in rulesOfColor)
+                        {
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="@($"r-{r.Id}")"
+                                       checked="@selRules.Contains(r.Id)"
+                                       @onchange="e => Toggle(selRules, r.Id, (bool)e.Value!)" />
+                                <label class="form-check-label" for="@($"r-{r.Id}")">@r.Text</label>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="row g-3 mt-1">
+            <!-- Modificadores -->
+            <div class="col-12 col-lg-6">
+                <h6>Modificadores <span class="text-secondary">(@selModifiers.Count — podem repetir)</span></h6>
+                <div class="border rounded p-2">
+                    @if (allModifiers.Count == 0)
+                    {
+                        <small class="text-secondary">Nenhum modificador cadastrado.</small>
+                    }
+                    @foreach (var m in allModifiers)
+                    {
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="@($"m-{m.Id}")"
+                                   checked="@selModifiers.Contains(m.Id)"
+                                   @onchange="e => Toggle(selModifiers, m.Id, (bool)e.Value!)" />
+                            <label class="form-check-label" for="@($"m-{m.Id}")">@m.Name</label>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Ações -->
+            <div class="col-12 col-lg-6">
+                <h6>Ações <span class="text-secondary">(@selActions.Count — saem 1× por jogo)</span></h6>
+                <div class="border rounded p-2">
+                    @if (allActions.Count == 0)
+                    {
+                        <small class="text-secondary">Nenhuma ação cadastrada.</small>
+                    }
+                    @foreach (var a in allActions)
+                    {
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="@($"a-{a.Id}")"
+                                   checked="@selActions.Contains(a.Id)"
+                                   @onchange="e => Toggle(selActions, a.Id, (bool)e.Value!)" />
+                            <label class="form-check-label" for="@($"a-{a.Id}")">@a.Text</label>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3 d-flex gap-2">
+            <button type="submit" class="btn btn-success">Salvar jogo</button>
+            <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">Cancelar</button>
+        </div>
+    </EditForm>
+}
+
+@if (games.Count == 0)
+{
+    <p class="text-secondary"><em>Nenhum jogo salvo. Crie um para definir jogadores e o conteúdo da partida.</em></p>
+}
+else
+{
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Jogo</th>
+                <th>Jogadores</th>
+                <th class="text-end">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var g in games)
+            {
+                <tr>
+                    <td class="fw-semibold">@g.Name</td>
+                    <td class="text-secondary"><small>@g.Player1, @g.Player2, @g.Player3</small></td>
+                    <td class="text-end text-nowrap">
+                        <a class="btn btn-sm btn-success" href="controle?jogo=@g.Id">Jogar</a>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => EditAsync(g.Id)">Editar</button>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAsync(g)">Excluir</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private static readonly Color[] colors = Enum.GetValues<Color>();
+
+    private IReadOnlyList<Game> games = [];
+    private IReadOnlyList<RuleDefinition> allRules = [];
+    private IReadOnlyList<ModifierDefinition> allModifiers = [];
+    private IReadOnlyList<ActionDefinition> allActions = [];
+
+    private Game? editModel;
+    private readonly HashSet<Guid> selRules = [];
+    private readonly HashSet<Guid> selModifiers = [];
+    private readonly HashSet<Guid> selActions = [];
+    private bool IsNew;
+
+    protected override async Task OnInitializedAsync()
+    {
+        allRules = await Catalog.GetRulesAsync();
+        allModifiers = await Catalog.GetModifiersAsync();
+        allActions = await Catalog.GetActionsAsync();
+        await LoadGamesAsync();
+    }
+
+    private async Task LoadGamesAsync() => games = await Games.GetGamesAsync();
+
+    private void StartNew()
+    {
+        editModel = new Game();
+        selRules.Clear();
+        selModifiers.Clear();
+        selActions.Clear();
+        IsNew = true;
+    }
+
+    private async Task EditAsync(Guid id)
+    {
+        var g = await Games.GetGameAsync(id);
+        if (g is null) return;
+        editModel = g;
+        selRules.Clear(); foreach (var r in g.Rules) selRules.Add(r.Id);
+        selModifiers.Clear(); foreach (var m in g.Modifiers) selModifiers.Add(m.Id);
+        selActions.Clear(); foreach (var a in g.Actions) selActions.Add(a.Id);
+        IsNew = false;
+    }
+
+    private void Cancel() => editModel = null;
+
+    private async Task SaveAsync()
+    {
+        await Games.SaveGameAsync(editModel!, [.. selRules], [.. selModifiers], [.. selActions]);
+        editModel = null;
+        await LoadGamesAsync();
+    }
+
+    private async Task DeleteAsync(Game g)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Excluir o jogo \"{g.Name}\"?"))
+            return;
+        await Games.DeleteGameAsync(g.Id);
+        if (editModel?.Id == g.Id) editModel = null;
+        await LoadGamesAsync();
+    }
+
+    private static void Toggle(HashSet<Guid> set, Guid id, bool on)
+    {
+        if (on) set.Add(id); else set.Remove(id);
+    }
+
+    private static void SetAll(HashSet<Guid> set, IEnumerable<Guid> ids, bool on)
+    {
+        foreach (var id in ids)
+        {
+            if (on) set.Add(id); else set.Remove(id);
+        }
+    }
+}

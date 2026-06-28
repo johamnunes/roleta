@@ -1,0 +1,63 @@
+@page "/publico"
+@layout PublicLayout
+@implements IDisposable
+@inject ShowState Show
+
+<PageTitle>Roleta — Telão</PageTitle>
+
+<div class="public-scores">
+    @foreach (var p in Show.Players)
+    {
+        <div class="public-player">
+            <div class="public-player-score">
+                <span class="seg-display score">
+                    <span class="ghost">88</span>
+                    <span class="val">@p.Score</span>
+                </span>
+            </div>
+            <div class="public-player-name show-text">@p.Name</div>
+        </div>
+    }
+</div>
+
+<div class="public-board @(Show.TimerTotalSeconds > 0 ? "with-timer" : "")">
+    @if (Show.DisplayVisible && Show.Current is { } c)
+    {
+        <div class="public-reveal @(Show.IsFlipReveal ? "flip" : "")" style="--accent: @AccentColor()" @key="Show.RevealSeq">
+            <span class="public-kind-chip">@ChipLabel(c)</span>
+            <div class="public-frame">
+                <div class="public-frame-text show-text">@c.Text</div>
+            </div>
+        </div>
+    }
+    @if (Show.TimerTotalSeconds > 0)
+    {
+        <div class="public-timer @(Show.TimerRemainingSeconds <= 5 ? "ending" : "")">
+            <span class="score">@Show.TimerRemainingSeconds</span>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => Show.Changed += OnChanged;
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private string AccentColor() => Show.Current switch
+    {
+        { Kind: RevealKind.Rule, Color: { } color } => color.HexColor(),
+        { Kind: RevealKind.Modifier } => "#e0a82e",
+        { Kind: RevealKind.Action } => "#18a99d",
+        _ => "#333333",
+    };
+
+    private static string ChipLabel(Reveal c) => c.Kind switch
+    {
+        RevealKind.Rule => "Regra",
+        RevealKind.Modifier => "Modificador",
+        RevealKind.Action => "Ação",
+        _ => string.Empty,
+    };
+
+    public void Dispose() => Show.Changed -= OnChanged;
+}
