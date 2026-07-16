@@ -1,17 +1,21 @@
 using System.ComponentModel.DataAnnotations;
+using Roleta.Domain.Enums;
 
 namespace Roleta.Domain.Catalog;
 
 /// <summary>
 /// Definição de um MODIFICADOR no catálogo (cadastrável/editável a qualquer momento).
-/// Só precisa de um nome — o efeito é conhecido no palco (ex.: SWAP, CLONE, FLIP).
+/// <see cref="Kind"/> identifica o efeito; <see cref="Name"/> é o texto da TV.
 /// Ver docs/game-rules.md §8.
 /// </summary>
 public class ModifierDefinition
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    /// <summary>Nome do modificador exibido na TV (ex.: "SWAP").</summary>
+    /// <summary>Tipo canônico do modificador (efeito + card visual).</summary>
+    public ModifierKind Kind { get; set; }
+
+    /// <summary>Nome do modificador exibido na TV (ex.: "Inversão").</summary>
     [Required(ErrorMessage = "O nome do modificador é obrigatório.")]
     [MaxLength(60)]
     public string Name { get; set; } = string.Empty;

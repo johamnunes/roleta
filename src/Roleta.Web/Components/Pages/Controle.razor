@@ -130,7 +130,19 @@
                 </div>
             </div>
             <div class="control-reveal-preview">
-                @if (Show.Current is { } c)
+                @if (Show.IsAudiencePending)
+                {
+                    <div class="text-uppercase small" style="opacity:.7">Regra da Plateia (aguardando revelar)</div>
+                    <div class="show-text fs-4">@(Show.CurrentRule?.Text)</div>
+                }
+                else if (Show.Current is { Kind: RevealKind.Modifier, ModifierKind: { } mk } mod)
+                {
+                    <div class="text-uppercase small mod-accent" style="--accent:@mk.HexColor();opacity:.85">
+                        Modificador @(Show.DisplayVisible ? "" : "(escondido)")
+                    </div>
+                    <div class="show-text fs-4" style="color:@mk.HexColor()">@mod.Text</div>
+                }
+                else if (Show.Current is { } c)
                 {
                     <div class="text-uppercase small" style="opacity:.7">@ChipLabel(c) @(Show.DisplayVisible ? "" : "(escondido)")</div>
                     <div class="show-text fs-4">@c.Text</div>
@@ -155,13 +167,20 @@
         <div class="d-flex flex-column gap-2">
             @foreach (var r in Show.RuleHistory)
             {
+                var flipped = Show.IsRuleFlipped(r.Id);
+                var displayText = flipped && !string.IsNullOrWhiteSpace(r.OppositeText) ? r.OppositeText! : r.Text;
                 <div class="d-flex align-items-center gap-2">
                     <span class="badge @r.Color.BadgeClass()" style="min-width:6rem">@r.Color.Label()</span>
-                    <span class="flex-grow-1 text-truncate show-text">@r.Text</span>
+                    @if (flipped)
+                    {
+                        <span class="badge text-bg-warning" title="Esta regra está no oposto">Invertida</span>
+                    }
+                    <span class="flex-grow-1 text-truncate show-text" title="@displayText">@displayText</span>
                     <button class="btn btn-sm btn-outline-primary" @onclick="() => MostrarRegra(r)">Mostrar</button>
-                    <button class="btn btn-sm btn-outline-warning" @onclick="() => InverterRegra(r)"
-                            disabled="@(string.IsNullOrWhiteSpace(r.OppositeText))" title="Alternar entre base e oposto (vira o card)">
-                        Inverter
+                    <button class="btn btn-sm @(flipped ? "btn-warning" : "btn-outline-warning")" @onclick="() => InverterRegra(r)"
+                            disabled="@(string.IsNullOrWhiteSpace(r.OppositeText))"
+                            title="@(flipped ? "Voltar para a regra base" : "Alternar para o oposto (vira o card)")">
+                        @(flipped ? "Desinverter" : "Inverter")
                     </button>
                 </div>
             }
@@ -169,7 +188,28 @@
     }
 </div>
 
-@if (noteModalOpen && Show.CurrentRule is { } cr)
+@if (Show.IsAudiencePending && Show.CurrentRule is { } pending)
+{
+    <div class="note-modal-backdrop">
+        <div class="note-modal">
+            <div class="d-flex align-items-center mb-2">
+                <span class="badge @pending.Color.BadgeClass()">@pending.Color.Label()</span>
+                <span class="ms-2 fw-bold">Regra da Plateia</span>
+                <button type="button" class="btn-close btn-close-white ms-auto" @onclick="CancelAudienceReveal"></button>
+            </div>
+            <p class="text-secondary mb-2"><small>O telão está no teaser. Confira a regra e clique em Revelar quando a plateia estiver pronta.</small></p>
+            <div class="show-text fs-3 mb-3">@pending.Text</div>
+            <div class="note-modal-body">
+                @(string.IsNullOrWhiteSpace(pending.JudgeNotes) ? "(sem nota cadastrada)" : pending.JudgeNotes)
+            </div>
+            <div class="mt-3 d-flex gap-2">
+                <button class="btn btn-secondary" @onclick="CancelAudienceReveal">Cancelar</button>
+                <button class="btn btn-warning btn-lg ms-auto fw-bold" @onclick="ConfirmAudienceReveal">Revelar</button>
+            </div>
+        </div>
+    </div>
+}
+else if (noteModalOpen && Show.CurrentRule is { } cr)
 {
     <div class="note-modal-backdrop">
         <div class="note-modal">
@@ -236,7 +276,12 @@
     {
         if (Show.HasActiveGame)
         {
-            if (Show.DrawRule(color)) { message = null; noteModalOpen = true; }
+            if (Show.DrawRule(color))
+            {
+                message = null;
+                // Branca: modal de teaser (IsAudiencePending). Outras: modal de nota.
+                noteModalOpen = color != Color.White;
+            }
             else message = $"Acabaram as regras {color.Label()} deste jogo.";
             return;
         }
@@ -249,8 +294,28 @@
             return;
         }
         message = null;
-        Show.ShowRule(pick);
+        if (color == Color.White)
+        {
+            Show.ArmAudienceRule(pick);
+            noteModalOpen = false;
+        }
+        else
+        {
+            Show.ShowRule(pick);
+            noteModalOpen = true;
+        }
+    }
+
+    private void ConfirmAudienceReveal()
+    {
+        Show.RevealAudienceRule();
         noteModalOpen = true;
+    }
+
+    private void CancelAudienceReveal()
+    {
+        Show.CancelAudiencePending();
+        noteModalOpen = false;
     }
 
     private void MostrarRegra(RuleDefinition r)
@@ -267,21 +332,22 @@
 
     private async Task RevealModifier()
     {
-        if (Show.HasActiveGame)
+        if (!Show.HasActiveGame)
         {
-            message = Show.DrawModifier() ? null : "Este jogo não tem modificadores.";
-            return;
+            var items = await Catalog.GetModifiersAsync(includeInactive: false);
+            if (items.Count == 0)
+            {
+                message = "Nenhum modificador ativo. Cadastre em Modificadores.";
+                return;
+            }
+            Show.SetModifierPool(items);
         }
 
-        var items = await Catalog.GetModifiersAsync(includeInactive: false);
-        var pick = Show.PickRandom("modifier", items, m => m.Id);
-        if (pick is null)
-        {
-            message = "Nenhum modificador ativo. Cadastre em Modificadores.";
-            return;
-        }
-        message = null;
-        Show.SetReveal(new Reveal(RevealKind.Modifier, string.Empty, pick.Name, null));
+        message = Show.DrawModifier()
+            ? null
+            : (Show.HasActiveGame
+                ? "Este jogo não tem modificadores."
+                : "Nenhum modificador ativo. Cadastre em Modificadores.");
     }
 
     private async Task RevealAction()
@@ -303,11 +369,12 @@
         Show.SetReveal(new Reveal(RevealKind.Action, string.Empty, pick.Text, null));
     }
 
-    private static string ChipLabel(Reveal c) => c.Kind switch
+    private static string ChipLabel(Reveal c) => c switch
     {
-        RevealKind.Rule => "Regra",
-        RevealKind.Modifier => "Modificador",
-        RevealKind.Action => "Ação",
+        { Kind: RevealKind.Rule, Color: Color.White } => "Regra da Plateia",
+        { Kind: RevealKind.Rule } => "Regra",
+        { Kind: RevealKind.Modifier } => "Modificador",
+        { Kind: RevealKind.Action } => "Ação",
         _ => string.Empty,
     };
 

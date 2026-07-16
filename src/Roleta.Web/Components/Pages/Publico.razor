@@ -21,12 +21,85 @@
 </div>
 
 <div class="public-board @(Show.TimerTotalSeconds > 0 ? "with-timer" : "")">
-    @if (Show.DisplayVisible && Show.Current is { } c)
+    @if (Show.IsAudiencePending)
+    {
+        <div class="audience-cue" @key="Show.RevealSeq">
+            <div class="confetti" aria-hidden="true">
+                @for (var i = 0; i < 48; i++)
+                {
+                    <span class="confetti-piece" style="--i:@i"></span>
+                }
+            </div>
+            <div class="audience-cue-title show-text">Regra da Plateia</div>
+        </div>
+    }
+    else if (Show.DisplayVisible && Show.Current is { Kind: RevealKind.Modifier, ModifierKind: { } mk } c)
+    {
+        <div class="mod-card mod-@mk.CssClass()" style="--accent: @mk.HexColor()" @key="Show.RevealSeq">
+            <span class="public-kind-chip">Modificador</span>
+            <div class="mod-frame">
+            @switch (mk)
+            {
+                case ModifierKind.Flip:
+                    <div class="mod-flip-scene">
+                        <div class="mod-flip-inner">
+                            <div class="mod-face mod-face-front" aria-hidden="true">
+                                <span class="mod-flip-glyph">↻</span>
+                            </div>
+                            <div class="mod-face mod-face-back">
+                                <div class="mod-title show-text">@c.Text</div>
+                            </div>
+                        </div>
+                    </div>
+                    break;
+                case ModifierKind.Swap:
+                    <div class="mod-swap-scene">
+                        <div class="mod-move-row" aria-hidden="true">
+                            <div class="mod-move-card swap-a"></div>
+                            <div class="mod-move-card swap-b"></div>
+                        </div>
+                        <div class="mod-title show-text">@c.Text</div>
+                    </div>
+                    break;
+                case ModifierKind.Clone:
+                    <div class="mod-clone-scene">
+                        <div class="mod-clone-stack" aria-hidden="true">
+                            <div class="mod-clone-card original"></div>
+                            <div class="mod-clone-card ghost"></div>
+                        </div>
+                        <div class="mod-title show-text">@c.Text</div>
+                    </div>
+                    break;
+                case ModifierKind.Left:
+                    <div class="mod-shift-scene mod-left">
+                        <div class="mod-move-row" aria-hidden="true">
+                            <div class="mod-move-card"></div>
+                            <div class="mod-move-card"></div>
+                            <div class="mod-move-card"></div>
+                        </div>
+                        <div class="mod-title show-text">@c.Text</div>
+                    </div>
+                    break;
+                case ModifierKind.Right:
+                    <div class="mod-shift-scene mod-right">
+                        <div class="mod-move-row" aria-hidden="true">
+                            <div class="mod-move-card"></div>
+                            <div class="mod-move-card"></div>
+                            <div class="mod-move-card"></div>
+                        </div>
+                        <div class="mod-title show-text">@c.Text</div>
+                    </div>
+                    break;
+            }
+            </div>
+        </div>
+    }
+    else if (Show.DisplayVisible && Show.Current is { } reveal)
     {
         <div class="public-reveal @(Show.IsFlipReveal ? "flip" : "")" style="--accent: @AccentColor()" @key="Show.RevealSeq">
-            <span class="public-kind-chip">@ChipLabel(c)</span>
+            <span class="public-kind-chip">@ChipLabel(reveal)</span>
             <div class="public-frame">
-                <div class="public-frame-text show-text">@c.Text</div>
+                <div class="public-frame-text show-text">@reveal.Text</div>
             </div>
         </div>
     }
@@ -45,17 +118,20 @@
 
     private string AccentColor() => Show.Current switch
     {
+        { Kind: RevealKind.Rule, Color: Color.White } => "#f0e6c8",
         { Kind: RevealKind.Rule, Color: { } color } => color.HexColor(),
+        { Kind: RevealKind.Modifier, ModifierKind: { } mk } => mk.HexColor(),
         { Kind: RevealKind.Modifier } => "#e0a82e",
         { Kind: RevealKind.Action } => "#18a99d",
         _ => "#333333",
     };
 
-    private static string ChipLabel(Reveal c) => c.Kind switch
+    private static string ChipLabel(Reveal c) => c switch
     {
-        RevealKind.Rule => "Regra",
-        RevealKind.Modifier => "Modificador",
-        RevealKind.Action => "Ação",
+        { Kind: RevealKind.Rule, Color: Color.White } => "Regra da Plateia",
+        { Kind: RevealKind.Rule } => "Regra",
+        { Kind: RevealKind.Modifier } => "Modificador",
+        { Kind: RevealKind.Action } => "Ação",
         _ => string.Empty,
     };
 

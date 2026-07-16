@@ -106,12 +106,19 @@ public class CatalogServiceTests : IDisposable
     [Fact]
     public async Task SaveModifier_and_SaveAction_persist()
     {
-        await _service.SaveModifierAsync(new ModifierDefinition { Name = "SWAP" });
+        await _service.SaveModifierAsync(new ModifierDefinition
+        {
+            Kind = ModifierKind.Swap,
+            Name = CanonicalModifiers.NameOf(ModifierKind.Swap),
+        });
         await _service.SaveActionAsync(new ActionDefinition { Text = "Faça um discurso de 15s." });
 
         var counts = await _service.GetCountsAsync();
         Assert.Equal(1, counts.Modifiers);
         Assert.Equal(1, counts.Actions);
+        var mod = Assert.Single(await _service.GetModifiersAsync());
+        Assert.Equal(ModifierKind.Swap, mod.Kind);
+        Assert.Equal("Troca", mod.Name);
     }
 
     public void Dispose() => _connection.Dispose();

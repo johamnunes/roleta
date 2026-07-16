@@ -53,7 +53,7 @@ public sealed class CatalogService(IDbContextFactory<RoletaDbContext> factory) :
         await using var db = await factory.CreateDbContextAsync(ct);
         var query = db.Modifiers.AsNoTracking().AsQueryable();
         if (!includeInactive) query = query.Where(m => m.IsActive);
-        return await query.OrderBy(m => m.Name).ToListAsync(ct);
+        return await query.OrderBy(m => m.Kind).ThenBy(m => m.Name).ToListAsync(ct);
     }
 
     public async Task<ModifierDefinition?> GetModifierAsync(Guid id, CancellationToken ct = default)

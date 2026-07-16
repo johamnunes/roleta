@@ -29,6 +29,8 @@ public class RoletaDbContext(DbContextOptions<RoletaDbContext> options) : DbCont
         modelBuilder.Entity<ModifierDefinition>(e =>
         {
             e.HasKey(m => m.Id);
+            e.Property(m => m.Kind).HasConversion<string>().HasMaxLength(20);
+            e.HasIndex(m => m.Kind);
         });
 
         modelBuilder.Entity<ActionDefinition>(e =>

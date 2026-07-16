@@ -70,7 +70,7 @@ Cada seção, num dado momento, é de **um** destes três tipos:
    (por modificador) ou até o fim. Você **acumula** várias. Quebrou e foi pego = perde ponto.
    *Ex.: "Você só pode falar no diminutivo."*
 2. **MODIFICADOR** — efeito **único e instantâneo** que mexe nas regras já em jogo (troca,
-   clona, inverte…). Não gruda; resolve na hora e some. *Ex.: SWAP — pegue uma regra de outro.*
+   clona, inverte…). Não gruda; resolve na hora e some. *Ex.: Troca — uma regra sua ↔ uma dele.*
 3. **AÇÃO / PROMPT** — **desafio imediato** que o jogador executa agora, valendo ponto. Não
    gruda; é uma tarefa pontual. *Ex.: "Faça um comercial vendendo este objeto inútil."*
 
@@ -158,19 +158,23 @@ manual** (forçar uma conversão específica para o ritmo do show), mas o defaul
 
 ## 8. Modificadores
 
-Efeitos pontuais. **Por enquanto, apenas os 3 herdados do Rulette** (mais podem ser cadastrados
-depois pela interface):
+Efeitos pontuais. Os **5 canônicos** do show:
 
 | Modificador | Efeito |
 |---|---|
-| **SWAP** (troca) | **Rouba** uma regra grudada em outro jogador (você escolhe qual). Passa a ser sua. |
-| **CLONE** (Ctrl C / Ctrl V) | Escolha uma regra em jogo (de qualquer um) e **copie-a para você** — o original continua com quem estava. |
-| **FLIP** (inverter) | Toda regra tem um **oposto no verso**. Vire uma regra sua para o oposto (ex.: "fale baixinho" ↔ "fale gritando"). |
+| **Inversão** | Toda regra tem um **oposto no verso**. **Vire uma regra no seu corpo** para o oposto (ex.: "fale baixinho" ↔ "fale gritando"). |
+| **Troca** | **Troca mútua**: escolha uma regra sua e uma de outro participante — elas se trocam. |
+| **CTRL+C CTRL+V** | Escolha uma regra **do seu corpo** e **copie-a para outro participante** — o original continua com você. |
+| **ESQUERDA** | **Cada** participante escolhe uma regra sua e a move para o jogador à **esquerda**. |
+| **DIREITA** | **Cada** participante escolhe uma regra sua e a move para o jogador à **direita**. |
+
+### Sorteio (sacola sem reposição)
+O app trata os modificadores como uma **sacola com 2 cópias de cada** kind ativo. No início
+todos têm a mesma probabilidade; a cada saída a ficha é consumida (a chance daquele kind cai).
+Quando a sacola esvazia, **reenche e reembaralha**.
 
 > O app registra o efeito de cada modificador no estado (quem perdeu/ganhou regra), pois isso
 > muda o placar futuro e a TV precisa refletir as regras ativas de cada jogador.
->
-> _Ideias futuras (fora do v1): Doação Envenenada, Contágio, Amnésia, Espelho._
 
 ---
 
@@ -234,7 +238,7 @@ julgar melhor leva o jogo.
 > Regras brancas não têm "oposto" para o Flip (são preenchidas ao vivo pela plateia).
 
 ### ⚙️ MODIFICADORES
-SWAP · CLONE · FLIP *(detalhes na §8; mais podem ser cadastrados na interface)*.
+Inversão · Troca · CTRL+C CTRL+V · ESQUERDA · DIREITA *(detalhes na §8)*.
 
 ### 🎬 AÇÕES / PROMPTS
 1. **Discurso relâmpago** — 15 s convencendo a plateia de que "segunda é o melhor dia".
@@ -267,8 +271,7 @@ SWAP · CLONE · FLIP *(detalhes na §8; mais podem ser cadastrados na interface
   por índice (§6).
 - **RuleDefinition** (catálogo por cor): `Id`, `Color`, `Text`, `OppositeText` (FLIP), notas p/
   o juiz.
-- **ModifierDefinition:** `Id`, `Kind` (`Swap|Clone|Flip|DoacaoEnvenenada|Contagio|Amnesia|Espelho`),
-  `Text`, `RequiresTargetPlayer`, `RequiresTargetRule`, `DurationSeconds?`.
+- **ModifierDefinition:** `Id`, `Kind` (`Flip|Swap|Clone|Left|Right`), `Name` (texto da TV).
 - **ActionDefinition:** `Id`, `Text`, `SuggestedDurationSeconds`, `ScoreOnSuccess` (default +1).
 - **AssignedRule** (instância em jogo, mutável): `Id`, `RuleDefinitionId`, `OwnerPlayerId`,
   `IsFlipped`, `OriginSpinId`, `AssignedAtRound`, `IsActive` (false se Amnésia), `TemporaryUntil?`
@@ -305,7 +308,9 @@ reason)` · `ToggleDisplay(show/hide)` · `Undo()` · `EndGame()`.
 - **Regra da cor** (Revealing/Rule): sortear do `RulePool[cor]` **sem repetir** na sessão
   (embaralhar IDs restantes com `Random.Shuffle` e consumir do topo, ou sortear índice e
   remover). Pool esgotado → avisar o juiz (ou reembaralhar, conforme política).
-- **Modificador / Ação:** sem repetição até esgotar, depois reembaralha.
+- **Modificador:** sacola com **2 cópias de cada** kind ativo; consome sem reposição; sacola
+  vazia → reenche e reembaralha (§8).
+- **Ação:** sem repetição até esgotar, depois reembaralha.
 - **Regra extra ao infrator** (delação válida): do `RulePool[cor da regra violada]`; se esgotou,
   qualquer cor.
 - Use `Random` **injetável** (seed) para testes determinísticos. Não use RNG criptográfico
@@ -315,7 +320,7 @@ reason)` · `ToggleDisplay(show/hide)` · `Undo()` · `EndGame()`.
 - Sempre 12 `WheelSection`; nº de seções `Regra` = `12 − ConversionCounter`.
 - `ConversionCounter` cresce no máximo 1 por rodada.
 - Soma do placar = soma dos `Delta` de todos os `ScoreEvent` (auditável via log → habilita Undo).
-- Toda mudança de regra grudada (Swap/Clone/Flip/Doação/Amnésia/Espelho) registrada para a
+- Toda mudança de regra grudada (Troca/Clone/Inversão/Esquerda/Direita) registrada para a
   PublicView refletir e o Undo funcionar.
 - **Persistir no SQLite antes de notificar a UI** → resume após crash sem perda.
 

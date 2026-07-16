@@ -92,7 +92,7 @@ Formatação é garantida por `.editorconfig` + `dotnet format`. O que o agente 
 | Seção             | `Section`  | 1 das 12 posições da roleta física |
 | Cor               | `Color`    | Grupo/pool: Blue, Red, Green |
 | Regra             | `Rule`     | Restrição permanente que "gruda" no jogador |
-| Modificador       | `Modifier` | Efeito pontual (Swap, Clone, Flip…) |
+| Modificador       | `Modifier` | Efeito pontual (`ModifierKind`: Flip/Inversão, Swap/Troca, Clone/Ctrl+C+V, Left/Esquerda, Right/Direita) |
 | Ação / Prompt     | `Action`   | Desafio imediato sorteado, valendo ponto |
 | Delação / Backstab| `CallOut`  | Acusar quebra de regra antes do apresentador notar |
 

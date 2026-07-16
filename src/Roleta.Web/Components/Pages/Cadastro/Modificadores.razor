@@ -1,13 +1,20 @@
 @page "/cadastro/modificadores"
 @inject ICatalogService Catalog
+@inject ShowState Show
 @inject IJSRuntime JS
 
 <PageTitle>Cadastro de Modificadores</PageTitle>
 
 <div class="d-flex align-items-center gap-3 flex-wrap mb-3">
     <h1 class="mb-0">🔀 Modificadores</h1>
+    <a class="btn btn-outline-dark" href="publico" target="_blank">Abrir telão ↗</a>
     <button class="btn btn-primary ms-auto" @onclick="StartNew">+ Novo modificador</button>
 </div>
+
+@if (previewMessage is not null)
+{
+    <div class="alert alert-success py-2">@previewMessage</div>
+}
 
 @if (editModel is not null)
 {
@@ -16,16 +23,28 @@
         <h5>@(IsNew ? "Novo modificador" : "Editar modificador")</h5>
 
         <div class="row g-3">
-            <div class="col-12 col-md-8">
+            <div class="col-12 col-md-4">
+                <label class="form-label">Tipo (efeito / card)</label>
+                <InputSelect @bind-Value="editModel.Kind" class="form-select" @bind-Value:after="OnKindChanged">
+                    @foreach (var kind in Enum.GetValues<ModifierKind>())
+                    {
+                        <option value="@kind">@kind.Label()</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-12 col-md-5">
                 <label class="form-label">Nome (vai para a TV)</label>
-                <InputText @bind-Value="editModel.Name" class="form-control" placeholder="ex.: SWAP" />
+                <InputText @bind-Value="editModel.Name" class="form-control" placeholder="ex.: Inversão" />
                 <ValidationMessage For="() => editModel.Name" />
             </div>
-            <div class="col-12 col-md-4 d-flex align-items-end">
+            <div class="col-12 col-md-3 d-flex align-items-end">
                 <div class="form-check">
                     <InputCheckbox @bind-Value="editModel.IsActive" class="form-check-input" id="modActive" />
                     <label class="form-check-label" for="modActive">Ativo (entra nos sorteios)</label>
                 </div>
+            </div>
+            <div class="col-12">
+                <small class="text-secondary">@editModel.Kind.Blurb()</small>
             </div>
         </div>
 
@@ -45,7 +64,8 @@ else
     <table class="table table-striped align-middle">
         <thead>
             <tr>
-                <th>Nome</th>
+                <th>Tipo</th>
+                <th>Nome (TV)</th>
                 <th class="text-center">Ativo</th>
                 <th class="text-end">Ações</th>
             </tr>
@@ -54,9 +74,16 @@ else
             @foreach (var m in items)
             {
                 <tr class="@(m.IsActive ? "" : "opacity-50")">
+                    <td>
+                        <span class="badge" style="background:@m.Kind.HexColor();color:#14141b">@m.Kind.Label()</span>
+                    </td>
                     <td class="fw-semibold">@m.Name</td>
                     <td class="text-center">@(m.IsActive ? "✅" : "—")</td>
                     <td class="text-end text-nowrap">
+                        <button class="btn btn-sm btn-warning" style="border-color:@m.Kind.HexColor();background:@m.Kind.HexColor();color:#14141b"
+                                @onclick="() => PreviewOnPublic(m)" title="Mostra este card no telão (não consome a sacola)">
+                            Testar animação
+                        </button>
                         <button class="btn btn-sm btn-outline-primary" @onclick="() => Edit(m)">Editar</button>
                         <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAsync(m)">Excluir</button>
                     </td>
@@ -64,23 +91,47 @@ else
             }
         </tbody>
     </table>
-    <p class="text-secondary"><small>@items.Count modificador(es).</small></p>
+    <p class="text-secondary"><small>@items.Count modificador(es). Os 5 canônicos são garantidos no startup.</small></p>
 }
 
 @code {
     private IReadOnlyList<ModifierDefinition> items = [];
     private ModifierDefinition? editModel;
+    private string? previewMessage;
     private bool IsNew => editModel is not null && items.All(m => m.Id != editModel.Id);
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
     private async Task LoadAsync() => items = await Catalog.GetModifiersAsync();
 
-    private void StartNew() => editModel = new ModifierDefinition();
+    private void PreviewOnPublic(ModifierDefinition m)
+    {
+        Show.SetReveal(new Reveal(RevealKind.Modifier, string.Empty, m.Name, null, m.Kind));
+        previewMessage = $"“{m.Name}” no telão — abra /publico para ver a animação.";
+    }
+
+    private void StartNew()
+    {
+        editModel = new ModifierDefinition
+        {
+            Kind = ModifierKind.Flip,
+            Name = CanonicalModifiers.NameOf(ModifierKind.Flip),
+        };
+    }
+
+    private void OnKindChanged()
+    {
+        if (editModel is null) return;
+        // Só pré-preenche o nome canônico se ainda estiver vazio ou for o nome de outro kind.
+        var canonicalNames = CanonicalModifiers.All.Select(x => x.Name).ToHashSet();
+        if (string.IsNullOrWhiteSpace(editModel.Name) || canonicalNames.Contains(editModel.Name))
+            editModel.Name = editModel.Kind.Label();
+    }
 
     private void Edit(ModifierDefinition m) => editModel = new ModifierDefinition
     {
         Id = m.Id,
+        Kind = m.Kind,
         Name = m.Name,
         IsActive = m.IsActive,
         CreatedAt = m.CreatedAt,

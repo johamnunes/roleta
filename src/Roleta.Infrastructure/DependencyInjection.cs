@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Roleta.Application.Catalog;
 using Roleta.Application.Games;
+using Roleta.Infrastructure.Catalog;
 using Roleta.Infrastructure.Persistence;
 
 namespace Roleta.Infrastructure;
@@ -24,8 +25,7 @@ public static class DependencyInjection
     }
 
     /// <summary>
-    /// Aplica migrations e garante o modo WAL (durável a quedas).
-    /// O catálogo começa vazio — tudo é cadastrado pela interface da aplicação.
+    /// Aplica migrations, garante WAL e popula os modificadores canônicos.
     /// Chamar uma vez no startup, antes de servir requisições.
     /// </summary>
     public static async Task InitializeRoletaDatabaseAsync(
@@ -38,5 +38,6 @@ public static class DependencyInjection
         await db.Database.MigrateAsync(ct);
         // WAL persiste no arquivo após definido uma vez; melhora escrita e resistência a crash.
         await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;", ct);
+        await ModifierCatalogSeeder.EnsureCanonicalModifiersAsync(db, ct);
     }
 }
