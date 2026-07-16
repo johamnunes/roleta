@@ -19,6 +19,19 @@ public class Game
     [MaxLength(40)] public string Player2 { get; set; } = "Jogador 2";
     [MaxLength(40)] public string Player3 { get; set; } = "Jogador 3";
 
+    /// <summary>
+    /// Texto que o apresentador lê no encerramento (botão "Fim de jogo" no controle).
+    /// Não limpa o jogo carregado — só exibe o script.
+    /// </summary>
+    [MaxLength(4000)]
+    public string EndingScript { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Pontos iniciais atribuídos a cada jogador (botão "Pontos base" no controle).
+    /// </summary>
+    [Range(0, 99, ErrorMessage = "Pontos base devem estar entre 0 e 99.")]
+    public int BasePoints { get; set; }
+
     // Conteúdo selecionado para este jogo (muitos-para-muitos com o catálogo).
     public List<RuleDefinition> Rules { get; set; } = [];
     public List<ModifierDefinition> Modifiers { get; set; } = [];

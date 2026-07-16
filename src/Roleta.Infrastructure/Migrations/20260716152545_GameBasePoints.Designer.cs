@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Roleta.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using Roleta.Infrastructure.Persistence;
 namespace Roleta.Infrastructure.Migrations
 {
     [DbContext(typeof(RoletaDbContext))]
-    partial class RoletaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260716152545_GameBasePoints")]
+    partial class GameBasePoints
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.9");

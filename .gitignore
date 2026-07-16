@@ -20,14 +20,6 @@ project.fragment.lock.json
 *.nuget.targets
 .packages/
 
-# ---- Banco do show (SQLite) — NÃO comitar ----
-data/*.db
-data/*.db-wal
-data/*.db-shm
-*.db
-*.db-wal
-*.db-shm
-
 # ---- IDEs / editores ----
 .vs/
 .vscode/

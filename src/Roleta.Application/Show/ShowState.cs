@@ -181,6 +181,13 @@ public sealed class ShowState : IDisposable
 
     /// <summary>Nome do jogo carregado, ou null se está em modo livre (sorteia do catálogo inteiro).</summary>
     public string? ActiveGameName { get; private set; }
+
+    /// <summary>Script de encerramento do jogo carregado (lido no botão Fim de jogo).</summary>
+    public string? ActiveEndingScript { get; private set; }
+
+    /// <summary>Pontos base do jogo carregado (botão Atribuir pontos base no controle).</summary>
+    public int ActiveBasePoints { get; private set; }
+
     public bool HasActiveGame => ActiveGameName is not null;
 
     public int RemainingRules(Color color) =>
@@ -333,6 +340,8 @@ public sealed class ShowState : IDisposable
     public void LoadGame(Game game)
     {
         ActiveGameName = game.Name;
+        ActiveEndingScript = string.IsNullOrWhiteSpace(game.EndingScript) ? null : game.EndingScript.Trim();
+        ActiveBasePoints = Math.Clamp(game.BasePoints, 0, 99);
 
         _players[0].Name = string.IsNullOrWhiteSpace(game.Player1) ? "Jogador 1" : game.Player1;
         _players[1].Name = string.IsNullOrWhiteSpace(game.Player2) ? "Jogador 2" : game.Player2;
@@ -364,6 +373,8 @@ public sealed class ShowState : IDisposable
     public void ClearGame()
     {
         ActiveGameName = null;
+        ActiveEndingScript = null;
+        ActiveBasePoints = 0;
         _gameRules.Clear();
         _gameModifiers.Clear();
         _gameActions.Clear();
@@ -449,6 +460,18 @@ public sealed class ShowState : IDisposable
     {
         foreach (var p in _players) p.Score = 0;
         Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// Define o placar de cada jogador para os pontos base do jogo carregado.
+    /// No-op se não há jogo ou BasePoints ≤ 0.
+    /// </summary>
+    public bool AssignBaseScores()
+    {
+        if (!HasActiveGame || ActiveBasePoints <= 0) return false;
+        foreach (var p in _players) p.Score = ActiveBasePoints;
+        Changed?.Invoke();
+        return true;
     }
 
     /// <summary>

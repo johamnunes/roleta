@@ -302,7 +302,8 @@ infrator) não altera o estado principal.
 `AssignRuleToActivePlayer()` · `ResolveModifier(target?, rule?)` · `JudgeAction(success, bonus?)` ·
 `Callout(accuserId, accusedId)` + `JudgeCallout(valid)` · `MarkRuleBroken(playerId, ruleId)` ·
 `NextSpin()` / `EndRound()` · `ApplyEvolution()` (override manual) · `AdjustScore(playerId, delta,
-reason)` · `ToggleDisplay(show/hide)` · `Undo()` · `EndGame()`.
+reason)` · `ToggleDisplay(show/hide)` · `Undo()` · `EndGame()` (mostra o `EndingScript` do jogo
+carregado no controle **sem** limpar placar/pools — o jogo continua carregado).
 
 ## E. Sorteio e não-repetição
 - **Regra da cor** (Revealing/Rule): sortear do `RulePool[cor]` **sem repetir** na sessão

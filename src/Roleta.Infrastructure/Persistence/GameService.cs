@@ -59,6 +59,8 @@ public sealed class GameService(IDbContextFactory<RoletaDbContext> factory) : IG
         existing.Player1 = game.Player1;
         existing.Player2 = game.Player2;
         existing.Player3 = game.Player3;
+        existing.EndingScript = game.EndingScript;
+        existing.BasePoints = game.BasePoints;
         existing.UpdatedAt = DateTimeOffset.UtcNow;
 
         existing.Rules.Clear();

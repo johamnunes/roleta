@@ -35,7 +35,7 @@
     }
     else if (Show.DisplayVisible && Show.Current is { Kind: RevealKind.Modifier, ModifierKind: { } mk } c)
     {
-        <div class="mod-card mod-@mk.CssClass()" style="--accent: @mk.HexColor()" @key="Show.RevealSeq">
+        <div class="mod-card mod-@mk.CssClass()" style="--accent: var(--show-modifier)" @key="Show.RevealSeq">
             <span class="public-kind-chip">Modificador</span>
             <div class="mod-frame">
             @switch (mk)
@@ -120,9 +120,8 @@
     {
         { Kind: RevealKind.Rule, Color: Color.White } => "#f0e6c8",
         { Kind: RevealKind.Rule, Color: { } color } => color.HexColor(),
-        { Kind: RevealKind.Modifier, ModifierKind: { } mk } => mk.HexColor(),
-        { Kind: RevealKind.Modifier } => "#e0a82e",
-        { Kind: RevealKind.Action } => "#18a99d",
+        { Kind: RevealKind.Modifier } => "var(--show-modifier)",
+        { Kind: RevealKind.Action } => "var(--show-action)",
         _ => "#333333",
     };
 
