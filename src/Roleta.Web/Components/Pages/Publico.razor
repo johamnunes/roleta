@@ -1,7 +1,8 @@
 @page "/publico"
 @layout PublicLayout
-@implements IDisposable
+@implements IAsyncDisposable
 @inject ShowState Show
+@inject IJSRuntime JS
 
 <PageTitle>Roleta — Telão</PageTitle>
 
@@ -99,7 +100,7 @@
         <div class="public-reveal @(Show.IsFlipReveal ? "flip" : "")" style="--accent: @AccentColor()" @key="Show.RevealSeq">
             <span class="public-kind-chip">@ChipLabel(reveal)</span>
             <div class="public-frame">
-                <div class="public-frame-text show-text">@reveal.Text</div>
+                <div class="public-frame-text show-text" @ref="frameTextEl">@reveal.Text</div>
             </div>
         </div>
     }
@@ -112,9 +113,36 @@
 </div>
 
 @code {
+    private ElementReference frameTextEl;
+    private IJSObjectReference? fitModule;
+    private IJSObjectReference? fitHandle;
+    private int fittedSeq = -1;
+
     protected override void OnInitialized() => Show.Changed += OnChanged;
 
     private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var needsFit = Show.DisplayVisible
+            && !Show.IsAudiencePending
+            && Show.Current is { Kind: RevealKind.Rule or RevealKind.Action };
+
+        if (!needsFit)
+        {
+            await DisposeFitAsync();
+            return;
+        }
+
+        if (fittedSeq == Show.RevealSeq && fitHandle is not null)
+            return;
+
+        fitModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/fitText.js");
+
+        await DisposeFitAsync();
+        fittedSeq = Show.RevealSeq;
+        fitHandle = await fitModule.InvokeAsync<IJSObjectReference>("attach", frameTextEl);
+    }
 
     private string AccentColor() => Show.Current switch
     {
@@ -134,5 +162,31 @@
         _ => string.Empty,
     };
 
-    public void Dispose() => Show.Changed -= OnChanged;
+    private async Task DisposeFitAsync()
+    {
+        if (fitHandle is null) return;
+        try
+        {
+            await fitHandle.InvokeVoidAsync("dispose");
+            await fitHandle.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // circuito já encerrado
+        }
+        fitHandle = null;
+        fittedSeq = -1;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Show.Changed -= OnChanged;
+        await DisposeFitAsync();
+        if (fitModule is not null)
+        {
+            try { await fitModule.DisposeAsync(); }
+            catch (JSDisconnectedException) { }
+            fitModule = null;
+        }
+    }
 }

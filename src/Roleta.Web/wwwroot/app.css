@@ -325,6 +325,7 @@ h1:focus {
     box-shadow: 0 0 0 0.2rem #000 inset, 0 0 60px -10px var(--accent);
     padding: clamp(2.5rem, 6vh, 6rem) clamp(2.5rem, 5vw, 5rem);
     transform-origin: center;
+    overflow: hidden;
     /* abre (para cima e para baixo) depois que o título aparece no meio */
     animation: card-open 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.25s both;
 }
@@ -351,8 +352,13 @@ h1:focus {
 }
 
 .public-frame-text {
+    /* tamanho máximo; fitText.js reduz até caber (ações longas, etc.) */
     font-size: clamp(3rem, 8.5vw, 9rem);
     line-height: 1.1;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: normal;
+    hyphens: auto;
     /* texto aparece só depois do card abrir */
     animation: text-in 0.4s ease-out 1.1s both;
 }
