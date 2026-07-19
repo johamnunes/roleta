@@ -356,9 +356,13 @@ h1:focus {
     font-size: clamp(3rem, 8.5vw, 9rem);
     line-height: 1.1;
     max-width: 100%;
-    overflow-wrap: break-word;
-    word-break: normal;
-    hyphens: auto;
+    /* quebra só em espaços — nunca no meio da palavra / sílaba */
+    overflow-wrap: normal;
+    word-wrap: normal;
+    word-break: keep-all;
+    hyphens: none;
+    -webkit-hyphens: none;
+    -ms-hyphens: none;
     /* texto aparece só depois do card abrir */
     animation: text-in 0.4s ease-out 1.1s both;
 }
@@ -400,8 +404,15 @@ h1:focus {
     .public-frame,
     .public-kind-chip,
     .public-frame-text,
-    .audience-cue-title,
-    .confetti-piece { animation: none; }
+    .audience-cue-title { animation: none; }
+
+    /* Sem animação: confete fica espalhado e VISÍVEL (não some em opacity:0). */
+    .confetti-piece {
+        animation: none !important;
+        opacity: 0.9;
+        top: calc(6% + (var(--i) * 1.7%));
+        transform: rotate(calc(var(--i) * 23deg));
+    }
 }
 
 /* ===================== TEASER REGRA DA PLATEIA ===================== */
@@ -438,32 +449,35 @@ h1:focus {
     inset: 0;
     pointer-events: none;
     z-index: 1;
+    overflow: hidden;
 }
 
 .confetti-piece {
-    --hue: calc(var(--i) * 47);
     position: absolute;
     top: -8%;
-    left: calc(2% + (var(--i) * 2.05%));
-    width: 0.55rem;
-    height: 1.1rem;
-    border-radius: 0.12rem;
-    background: hsl(var(--hue), 85%, 62%);
-    opacity: 0;
-    animation: confetti-fall 2.8s linear infinite;
-    animation-delay: calc(var(--i) * -0.08s);
+    left: calc(1% + (var(--i) * 2.05%));
+    width: 0.85rem;
+    height: 1.5rem;
+    border-radius: 0.15rem;
+    /* cores sólidas — evita falha de hsl(calc(...)) em alguns engines */
+    background: #ff5b6e;
+    opacity: 1;
+    will-change: transform;
+    /* translateY em vh (não % da peça — % só andava ~1 rem e sumia no overflow) */
+    animation: confetti-fall 2.6s linear infinite;
+    animation-delay: calc(var(--i) * -0.05s);
 }
 
 .confetti-piece:nth-child(3n) {
-    width: 0.7rem;
-    height: 0.7rem;
+    width: 1rem;
+    height: 1rem;
     border-radius: 50%;
-    background: hsl(calc(var(--hue) + 40), 90%, 68%);
+    background: #5ec8ff;
 }
 
 .confetti-piece:nth-child(4n) {
-    width: 0.45rem;
-    height: 1.35rem;
+    width: 0.6rem;
+    height: 1.75rem;
     background: #f0e6c8;
 }
 
@@ -471,22 +485,25 @@ h1:focus {
     background: #e0a82e;
 }
 
-@keyframes confetti-fall {
-    0% {
-        opacity: 0;
-        transform: translate3d(0, -10%, 0) rotate(0deg);
-    }
-    8% { opacity: 1; }
-    100% {
-        opacity: 0.85;
-        transform: translate3d(var(--drift, 0px), 110%, 0) rotate(720deg);
-    }
+.confetti-piece:nth-child(7n) {
+    background: #7dffb3;
 }
 
-.confetti-piece:nth-child(odd)  { --drift: 28px; }
-.confetti-piece:nth-child(even) { --drift: -24px; }
-.confetti-piece:nth-child(3n)   { --drift: 48px; }
-.confetti-piece:nth-child(5n)   { --drift: -42px; }
+.confetti-piece:nth-child(odd)  { --drift: 36px; }
+.confetti-piece:nth-child(even) { --drift: -30px; }
+.confetti-piece:nth-child(3n)   { --drift: 56px; }
+.confetti-piece:nth-child(5n)   { --drift: -50px; }
+
+@keyframes confetti-fall {
+    0% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) rotate(0deg);
+    }
+    100% {
+        opacity: 0.7;
+        transform: translate3d(var(--drift, 0px), 55vh, 0) rotate(720deg);
+    }
+}
 
 /* Cronômetro no telão (contagem regressiva da ação) */
 .public-timer {
@@ -549,6 +566,12 @@ h1:focus {
     text-transform: uppercase;
     letter-spacing: 0.04em;
     max-width: 100%;
+    overflow-wrap: normal;
+    word-wrap: normal;
+    word-break: keep-all;
+    hyphens: none;
+    -webkit-hyphens: none;
+    -ms-hyphens: none;
     /* igual ao texto da regra: entra depois do card abrir */
     animation: text-in 0.4s ease-out 1.1s both;
 }

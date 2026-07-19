@@ -26,9 +26,14 @@
     {
         <div class="audience-cue" @key="Show.RevealSeq">
             <div class="confetti" aria-hidden="true">
-                @for (var i = 0; i < 48; i++)
+                @for (var i = 0; i < 56; i++)
                 {
-                    <span class="confetti-piece" style="--i:@i"></span>
+                    var inv = System.Globalization.CultureInfo.InvariantCulture;
+                    // left e delay desalinhados (senão vira uma diagonal)
+                    var left = (1.5 + i * 1.75).ToString("0.##", inv);
+                    var delay = (-(((i * 17) + 5) % 56) * 0.045).ToString("0.###", inv);
+                    var drift = (((i * 13) % 11) - 5) * 12;
+                    <span class="confetti-piece" style="--i:@i; --drift:@(drift)px; left:@(left)%; animation-delay:@(delay)s"></span>
                 }
             </div>
             <div class="audience-cue-title show-text">Regra da Plateia</div>
